@@ -6,7 +6,7 @@ load("C:/Users/ryanw/OneDrive/Desktop/EC349 Data Science/datasets/yelp_user_smal
 install.packages(c("tidytext", "dplyr", "textdata"))
 library(tidytext)
 library(dplyr)
-library("textdata")
+library(textdata)
 
 # Load sentiment lexicon (AFINN as an example)
 afinn_scores <- get_sentiments("afinn")
@@ -25,15 +25,17 @@ review_data_small_sentiment <- review_data_small_tokens %>%
   group_by(review_id) %>%
   summarise(sentiment_score = sum(value))
 
-# Join the sentiment scores back to the original data frame based on the unique identifier (review_id)
+#Join the sentiment scores back to the original data frame based on the unique identifier (review_id)
 review_data_small <- review_data_small %>%
   left_join(review_data_small_sentiment, by = "review_id")
 
-## COMBINING USER DATA AND REVIEW DATA
+#Combining user data and review data
 combined_data <- inner_join (user_data_small, review_data_small, by = "user_id")
 
-#remove non-numeric,irrelevant and NA data from combined_data
+#remove non-numeric values from combined_data
 combined_data_clean <- select(combined_data, -user_id, -name, -yelping_since, -elite, -friends, -review_id, -business_id, -text, -date)
+
+#removing NA rows
 combined_data_clean <- na.omit(combined_data_clean)
 
 #renaming variables for clarity
@@ -42,11 +44,16 @@ combined_data_clean <- combined_data_clean %>%
 combined_data_clean <- combined_data_clean %>%
   rename(average_stars_given_by_user = average_stars)
 
-# Remove rows with missing values
-combined_data_clean <- na.omit(combined_data_clean)
-
 #changing stars to being categorical
 combined_data_clean$stars_review <- factor(combined_data_clean$stars_review)
+
+#removing irrelevant variables
+combined_data_clean <- select(combined_data_clean)
+
+#Sub-setting combined_data_clean due to computational concerns
+#Creating a random subset based on the variable 'stars_review'
+combined_data_clean_2 <- combined_data_clean %>%
+  sample_n(size = 50000, replace = FALSE)
 
 ## SPLITTING DATASETS INTO TRAINING AND TEST DATA
 # Install caret to split datasets.
@@ -55,11 +62,11 @@ library(caret)
 set.seed(1)
 
 #p determines the proporttion of the training set
-train_indices <- createDataPartition(combined_data$stars, p = 0.8, list = FALSE)
+train_indices <- createDataPartition(combined_data_clean_2$stars, p = 0.7, list = FALSE)
 # Create the training set
-combined_data_training_set <- combined_data_clean[train_indices, ]
+combined_data_training_set <- combined_data_clean_2[train_indices, ]
 # Create the test set
-combined_data_test_set <- combined_data_clean[-train_indices, ]
+combined_data_test_set <- combined_data_clean_2[-train_indices, ]
 
 ##RANDOM FOREST MODELLING
 #install reqiured packages
@@ -67,5 +74,13 @@ install.packages(c("randomForest", "caTools"))
 library(randomForest)
 library(caTools)
 
-#randomForest model with stars_review as the dependant variable
+#randomForest model with stars_review as the dependent variable
 rf_model <- randomForest(stars_review ~., data=combined_data_training_set, ntree = 1000)
+#Apply on test dataset
+predictions <- predict(rf_model, newdata = combined_data_test_set)
+#Test the accuracy of my model
+conf_matrix <- confusionMatrix(predictions, combined_data_test_set$stars_review)
+accuracy <- conf_matrix$overall["Accuracy"]
+print(paste("Accuracy:", accuracy))
+#Plot 
+varImpPlot(rf_model)
