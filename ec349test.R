@@ -47,9 +47,6 @@ combined_data_clean <- combined_data_clean %>%
 #changing stars to being categorical
 combined_data_clean$stars_review <- factor(combined_data_clean$stars_review)
 
-#removing irrelevant variables
-combined_data_clean <- select(combined_data_clean)
-
 #Sub-setting combined_data_clean due to computational concerns
 #Creating a random subset based on the variable 'stars_review'
 combined_data_clean_2 <- combined_data_clean %>%
@@ -82,5 +79,9 @@ predictions <- predict(rf_model, newdata = combined_data_test_set)
 conf_matrix <- confusionMatrix(predictions, combined_data_test_set$stars_review)
 accuracy <- conf_matrix$overall["Accuracy"]
 print(paste("Accuracy:", accuracy))
-#Plot 
+
+##Study variable importance
+#Plot variable importance.
 varImpPlot(rf_model)
+# Print the feature importance scores
+print(importance_scores)
