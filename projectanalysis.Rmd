@@ -1,0 +1,72 @@
+---
+title: "Project Analysis"
+output: html_document
+date: "2023-12-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cran, include=FALSE}
+# Set a CRAN mirror
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+```
+
+
+The objective of this analysis is to predict the number of "stars" that user i will give to business j from the relationship: Stars=f(x)+ ε. To achieve this, I will be using multiple variables to represent f(x), including sentiment scores computed from user text reviews, the average stars given to businesses by users, a user's review count etc. In total, there are 21 explanatory variables and all of them can be found in the combined_data_clean_2 dataset that will be generated in the code. Stars is treated as a categorical variable since users can only provide reviews on a scale of 1 to 5. Only the yelp_review_small and yelp_user_small datasets are used because these already contain the key explanatory variables and are less computationally expensive given that they contain less observations.
+
+**Analysis of methods**
+
+-   I will be using the random forest model in this analysis. Whilst I have considered other models, I have decided on random forests due to the following reasons: Random forests have exceptionally high predictive accuracy in both classification and regression models while having the capability to simulate sophisticated interactions between different explanatory variables. It also can determine variable importance by providing a feature importance score (Cutler et al., 2007).
+-   While random forests have less interpretability compared to linear models such as OLS, Ridge or Lasso, this tradeoff is worthwhile as the goal for this project is to maximise the predictability of stars, where random forests perform better than linear models.
+-   Since the number of explanatory variables (21) is quite high, there is a risk of overfitting if I were to use standard decision trees as they are highly sensitive to any changes in the training data. Random forests are less sensitive to variations in training data as it averages predictions across multiple trees with different datasets, resulting in less variance and higher robustness.
+-   In bagging, very strong predictors tend to dominate the top split in trees. As a result, the correlation between trees is high in bagging, limiting the effectiveness of averaging the trees. Random forests are an improvement due to the subsetting of predictors in every tree, causing strong predictors to not be included in most trees, resulting in strong predictors not dominating the top split. As such, the correlation between trees is low in random forests, which results in less variance (James et al., 2013).
+
+**Analysis of results**
+
+In the training data, plotting the variable importance suggests that sentiments scores generated from text reviews and the average stars a user gives businesses are the most powerful predictors in how a user might rate a business. Other variables that are important include the number of reviews a user has and if a user rates a business as useful, funny or cool. (For variables with the same column label in both datasets, they are labled as .x if they are generated from yelp_review_small and .y if they are generated from yelp_user_small.)
+
+```{r include_varIMP, echo=FALSE}
+# Source the R script
+source("ec349test.R")
+varImpPlot(rf_model)
+```
+
+In the test data, our model returns an accuracy of 58.8%. Overall, the random forest model is able to predict when users will give a business 1 star or 5 stars quite precisely at 67.9% and 62.2% respectively, but performs poorly at predicting 2 stars, 3 stars and 4 stars (30.3%, 28.3%, 41.8%).
+
+This holds true when evaluating other classification performance such as balanced accuracy and sensitivity. It is interesting to note that the specificity for 5-star predictions is low when compared to other stars due to a large proportion of 3-star and 4-star reviews were being misinterpreted as 5-star reviews in our model.
+
+Given that the random forest model only has an accuracy of 58.8%, there is still a possibility that the model is overfitted or there is omitted variable bias. The model could also not be perfoming optimally since there is a large number of variables and very few of them are highly relevant. Especially in instances of trees where sentiment_score and average_stars_given_by_user were dropped, the trees will predict Stars very poorly.
+
+```{r include_confmatrix, echo=FALSE}
+# Source the R script
+source("ec349test.R")
+# Print the confusion matrix
+print(conf_matrix)
+```
+
+A brief description of my chosen DS methodology The CRISP-DM model consists of 6 parts that create a coherent flow from defining a problem to using data to extract knowledge. I used the CRISP-DM methodology as it is the industry standard due to its widespread applicability in different fields of data science projects (Schröer et al., 2021). Besides that, the inherent weaknesses of CRISP-DM such as its incompatibility with large teams (Saltz et al., 2017) and restrictiveness with projects more exploratory in nature (Martinez-Plumet et al., 2020) do not apply to this project, as it is an individual project which has a clearly defined goal. The application of CRISP-DM to my project is as follows:
+
+**Steps in CRIPS-DM Application**
+
+Business understanding: Understanding that my goal is to predict stars given to businesses by users. Data understanding: Choosing suitable explanatory variables such as sentiment scores and average stars given by users. Data preparation: Merging different datasets and applying sentiment scores to text. Modeling: Applying the random forest package to my dataset. Evaluation: Assessment of the results from training and test data. Deployment: Producing the final report.
+
+**A statement on my most difficult challenge**
+
+The most difficult challenge of this project was to determine which model was the best suited for the assignment. To overcome this, I had to carefully consider the features of my dataset and my priorities before deciding. Considering that I had a large pool of variables and that my priority was predictability over interpretability, a non-linear model was more suitable. Out of the non-linear models that we learned, random forests were the best model due to its variance reduction and robustness to overfitting.
+
+(933 words) <https://github.com/ryanwong8809/ec349project> - code included here.
+
+**References**
+
+Martinez-Plumed, F., Contreras-Ochando, L., Ferri, C., Hernandez Orallo, J., Kull, M., Lachiche, N., Ramirez Quintana, M.J. and Flach, P.A. (2020). CRISP-DM Twenty Years Later: From Data Mining Processes to Data Science Trajectories. IEEE Transactions on Knowledge and Data Engineering, [online] 33(8), pp.1--1. Available at: <https://research-information.bris.ac.uk/ws/portalfiles/portal/220614618/TKDE_Data_Science_Trajectories_PF.pdf>.
+
+Schröer, C., Kruse, F. and Gómez, J.M. (2021). A Systematic Literature Review on Applying CRISP-DM Process Model. Procedia Computer Science, [online] 181, pp.526--534. Available at: <https://www.sciencedirect.com/science/article/pii/S1877050921002416>.
+
+Saltz, J., Shamshurin, I. and Connors, C. (2017). Predicting data science sociotechnical execution challenges by categorizing data science projects. Journal of the Association for Information Science and Technology, 68(12), pp.2720--2728. doi: <https://doi.org/10.1002/asi.23873>.
+
+James, G., Witten, D., Hastie, T. and Tibshirani, R. (2013). An introduction to statistical learning (Vol. 112, p. 18). New York: springer.
+
+Cutler, D.R., Edwards Jr, T.C., Beard, K.H., Cutler, A., Hess, K.T., Gibson, J. and Lawler, J.J. (2007). Random forests for classification in ecology. Ecology, 88(11), pp.2783-2792
